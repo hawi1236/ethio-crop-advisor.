@@ -1,1 +1,1 @@
-# ethio-crop-advisor.
+# ethio-crop-advisor
