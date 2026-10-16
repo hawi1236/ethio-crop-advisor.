@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: ethio-crop-advisor
+    runtime: node
+    plan: starter
+    buildCommand: npm ci && npm run build
+    startCommand: npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_VERSION
+        value: 24.21.0
+      - key: DATABASE_PATH
+        value: /var/data/ethio-crop-advisor.sqlite
+    disk:
+      name: ethio-crop-advisor-data
+      mountPath: /var/data
+      sizeGB: 1

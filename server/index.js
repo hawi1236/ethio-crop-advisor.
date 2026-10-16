@@ -1,11 +1,13 @@
 import express from "express";
+import { existsSync } from "node:fs";
 import process from "node:process";
-import { resolve } from "node:path";
-import { pathToFileURL } from "node:url";
+import { dirname, resolve } from "node:path";
+import { fileURLToPath, pathToFileURL } from "node:url";
 import { listRecentRecommendations, saveRecommendation } from "./database.js";
 
 const app = express();
 const port = Number(process.env.PORT) || 3002;
+const clientDistPath = resolve(dirname(fileURLToPath(import.meta.url)), "../dist");
 const geocodingCache = new Map();
 const conditionsCache = new Map();
 const weatherCache = new Map();
@@ -219,8 +221,21 @@ app.get("/api/weather", async (req, res) => {
   }
 });
 
-app.use((req, res) => {
+app.use("/api", (_req, res) => {
   res.status(404).json({ error: "API route not found." });
+});
+
+if (existsSync(clientDistPath)) {
+  app.use(express.static(clientDistPath));
+  app.get(/.*/, (_req, res, next) => {
+    res.sendFile(resolve(clientDistPath, "index.html"), (error) => {
+      if (error) next(error);
+    });
+  });
+}
+
+app.use((req, res) => {
+  res.status(404).json({ error: "Route not found." });
 });
 
 app.use((error, req, res, next) => {

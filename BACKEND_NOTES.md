@@ -16,6 +16,7 @@ npm.cmd run dev
 
 The API listens on `http://localhost:3002`. Check `GET /api/health`.
 The first server start creates `server/data/ethio-crop-advisor.sqlite` automatically using Node.js's built-in SQLite module. Recommendation requests and results are stored in the `recommendation_history` table. Use `GET /api/recommendations` to retrieve the latest 50 saved results. Set `DATABASE_PATH` before starting the server to choose another SQLite file. This prototype does not have accounts or access controls; do not expose recommendation history publicly.
+For a single-service Render deployment, `render.yaml` builds the frontend and serves it from Express alongside the API. Its persistent disk stores SQLite at `/var/data/ethio-crop-advisor.sqlite`; Render persistent disks require a paid service.
 
 ## `GET /api/locations?query=Bishoftu`
 

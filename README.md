@@ -34,6 +34,10 @@ npm.cmd run dev
 
 Open the frontend URL printed by Vite (usually `http://localhost:5173`). Keep both terminals open while using the prototype. If either server was already running before these changes, stop both with `Ctrl+C` and restart them so Vite loads the updated API proxy. Use the newly printed frontend URL.
 
+## Deploy to Render
+
+This project includes a Render Blueprint in `render.yaml`. Push the project to GitHub, then in Render choose **New → Blueprint**, connect the repository, and apply the blueprint. It builds the Vite frontend and serves it with the Express API as one web service. The blueprint sets `DATABASE_PATH` to `/var/data/ethio-crop-advisor.sqlite` and attaches a persistent disk so recommendation history survives deploys. Render persistent disks require a paid web service; review Render's current pricing before applying the blueprint. The SQLite history is for this single service and is not shared between multiple running instances.
+
 ## Checks
 
 ```powershell
