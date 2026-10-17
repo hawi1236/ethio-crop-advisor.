@@ -3,7 +3,7 @@ import { existsSync } from "node:fs";
 import process from "node:process";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
-import { listRecentRecommendations, saveRecommendation } from "./database.js";
+import { closeDatabase, connectDatabase, recommendationStore } from "./database.js";
 
 const app = express();
 const port = Number(process.env.PORT) || 3002;
@@ -42,6 +42,7 @@ const rotationCandidates = [
 ];
 
 app.use(express.json({ limit: "16kb" }));
+app.locals.recommendationStore = recommendationStore;
 
 app.get("/api/health", (_req, res) => {
   res.json({ status: "ok", service: "ethio-crop-advisor-api", apiVersion: 1 });
@@ -51,9 +52,10 @@ app.get("/api/crops", (_req, res) => {
   res.json({ crops });
 });
 
-app.get("/api/recommendations", (_req, res) => {
+app.get("/api/recommendations", async (_req, res) => {
   try {
-    return res.json({ recommendations: listRecentRecommendations() });
+    const recommendations = await app.locals.recommendationStore.listRecent();
+    return res.json({ recommendations });
   } catch (error) {
     console.error("Could not read recommendation history:", error);
     return res.status(500).json({ error: "Recommendation history could not be loaded." });
@@ -107,7 +109,7 @@ app.get("/api/locations", async (req, res) => {
   }
 });
 
-app.post("/api/recommend", (req, res) => {
+app.post("/api/recommend", async (req, res) => {
   const body = req.body && typeof req.body === "object" && !Array.isArray(req.body)
     ? req.body
     : {};
@@ -179,7 +181,7 @@ app.post("/api/recommend", (req, res) => {
   };
 
   try {
-    const record = saveRecommendation(responseBody);
+    const record = await app.locals.recommendationStore.save(responseBody);
     return res.status(201).json({ ...record, ...responseBody });
   } catch (error) {
     console.error("Could not save recommendation:", error);
@@ -468,8 +470,28 @@ function scoreRotation(sequence, priority, irrigation) {
 }
 
 if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1])).href) {
-  app.listen(port, () => {
-    console.log(`EthioCrop API listening on http://localhost:${port}`);
+  connectDatabase().then(() => {
+    const server = app.listen(port, () => {
+      console.log(`EthioCrop API listening on http://localhost:${port}`);
+    });
+
+    const shutdown = () => {
+      server.close((error) => {
+        if (error) {
+          console.error("Could not close API server:", error);
+          process.exitCode = 1;
+        }
+        closeDatabase().catch((closeError) => {
+          console.error("Could not close MongoDB connection:", closeError);
+          process.exitCode = 1;
+        });
+      });
+    };
+    process.once("SIGINT", shutdown);
+    process.once("SIGTERM", shutdown);
+  }).catch((error) => {
+    console.error("Could not start API server:", error);
+    process.exitCode = 1;
   });
 }
 

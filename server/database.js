@@ -1,50 +1,128 @@
-import { mkdirSync } from "node:fs";
-import { dirname, resolve } from "node:path";
+
+import { MongoClient } from "mongodb";
 import process from "node:process";
-import { fileURLToPath } from "node:url";
-import { DatabaseSync } from "node:sqlite";
 
-const serverDirectory = dirname(fileURLToPath(import.meta.url));
-const databasePath = process.env.DATABASE_PATH
-  ? resolve(process.env.DATABASE_PATH)
-  : resolve(serverDirectory, "data", "ethio-crop-advisor.sqlite");
+let client;
+let connectedStore;
 
-mkdirSync(dirname(databasePath), { recursive: true });
+export function getMongoUri(uri = process.env.MONGODB_URI) {
+  if (!uri) {
+    throw new Error(
+      "MONGODB_URI is missing. Add your MongoDB connection string to the .env file."
+    );
+  }
 
-const database = new DatabaseSync(databasePath);
-database.exec(`
-  CREATE TABLE IF NOT EXISTS recommendation_history (
-    id INTEGER PRIMARY KEY,
-    created_at TEXT NOT NULL,
-    response_json TEXT NOT NULL
-  )
-`);
+  if (/YOUR_CLUSTER|<[^>]+>/i.test(uri)) {
+    throw new Error(
+      "MONGODB_URI still contains a placeholder. Copy the connection string from MongoDB Atlas and replace the placeholders."
+    );
+  }
 
-const insertRecommendation = database.prepare(`
-  INSERT INTO recommendation_history (created_at, response_json)
-  VALUES (?, ?)
-`);
-const selectRecentRecommendations = database.prepare(`
-  SELECT id, created_at, response_json
-  FROM recommendation_history
-  ORDER BY id DESC
-  LIMIT ?
-`);
-
-export function saveRecommendation(response) {
-  const createdAt = new Date().toISOString();
-  const result = insertRecommendation.run(createdAt, JSON.stringify(response));
-  return { id: Number(result.lastInsertRowid), createdAt };
+  return uri;
 }
 
-export function listRecentRecommendations(limit = 50) {
-  return selectRecentRecommendations.all(limit).map((row) => ({
-    id: row.id,
-    createdAt: row.created_at,
-    ...JSON.parse(row.response_json),
-  }));
+export function getMongoDatabaseName(
+  uri,
+  databaseName = process.env.MONGODB_DB
+) {
+  const uriDatabaseName = decodeURIComponent(
+    new URL(uri).pathname.slice(1)
+  );
+
+  return databaseName || uriDatabaseName || "ethio_crop_advisor";
 }
 
-export function closeDatabase() {
-  database.close();
+export function createRecommendationStore(collection) {
+  return {
+    async save(response) {
+      const createdAt = new Date();
+
+      const result = await collection.insertOne({
+        createdAt,
+        response,
+      });
+
+      return {
+        id: result.insertedId.toString(),
+        createdAt: createdAt.toISOString(),
+      };
+    },
+
+    async listRecent(limit = 50) {
+      const records = await collection
+        .find({})
+        .sort({ createdAt: -1, _id: -1 })
+        .limit(limit)
+        .toArray();
+
+      return records.map(({ _id, createdAt, response }) => ({
+        id: _id.toString(),
+        createdAt: createdAt.toISOString(),
+        ...response,
+      }));
+    },
+  };
+}
+
+export const recommendationStore = {
+  async save(response) {
+    if (!connectedStore) {
+      throw new Error("MongoDB is not connected.");
+    }
+
+    return connectedStore.save(response);
+  },
+
+  async listRecent(limit = 50) {
+    if (!connectedStore) {
+      throw new Error("MongoDB is not connected.");
+    }
+
+    return connectedStore.listRecent(limit);
+  },
+};
+
+export async function connectDatabase() {
+  if (connectedStore) {
+    return connectedStore;
+  }
+
+  const uri = getMongoUri();
+
+  // Diagnostic setting: prefer IPv4 for the connection.
+  const nextClient = new MongoClient(uri, {
+    family: 4,
+    connectTimeoutMS: 30000,
+    serverSelectionTimeoutMS: 30000,
+  });
+
+  await nextClient.connect();
+
+  try {
+    const databaseName = getMongoDatabaseName(uri);
+    const collection = nextClient
+      .db(databaseName)
+      .collection("recommendation_history");
+
+    await collection.createIndex({ createdAt: -1 });
+
+    connectedStore = createRecommendationStore(collection);
+    client = nextClient;
+
+    console.log(`MongoDB connected successfully. Database: ${databaseName}`);
+
+    return connectedStore;
+  } catch (error) {
+    await nextClient.close();
+    throw error;
+  }
+}
+
+export async function closeDatabase() {
+  if (client) {
+    await client.close();
+  }
+
+  client = undefined;
+  connectedStore = undefined;
 }

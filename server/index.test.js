@@ -1,14 +1,23 @@
 import assert from "node:assert/strict";
 import { after, before, test } from "node:test";
-import { mkdtempSync, rmSync } from "node:fs";
-import { tmpdir } from "node:os";
-import { join } from "node:path";
-import process from "node:process";
 
-const testDatabaseDirectory = mkdtempSync(join(tmpdir(), "ethio-crop-advisor-test-"));
-process.env.DATABASE_PATH = join(testDatabaseDirectory, "test.sqlite");
 const { default: app } = await import("./index.js");
-const { closeDatabase } = await import("./database.js");
+const recommendationHistory = [];
+let nextRecommendationId = 0;
+app.locals.recommendationStore = {
+  async save(response) {
+    const record = {
+      id: `test-${++nextRecommendationId}`,
+      createdAt: new Date().toISOString(),
+      ...response,
+    };
+    recommendationHistory.unshift(record);
+    return { id: record.id, createdAt: record.createdAt };
+  },
+  async listRecent(limit = 50) {
+    return recommendationHistory.slice(0, limit);
+  },
+};
 
 let server;
 let baseUrl;
@@ -23,8 +32,6 @@ after(async () => {
   await new Promise((resolve, reject) => {
     server.close((error) => error ? reject(error) : resolve());
   });
-  closeDatabase();
-  rmSync(testDatabaseDirectory, { recursive: true, force: true });
 });
 
 test("health route reports that the API is ready", async () => {
@@ -45,7 +52,7 @@ test("crops route returns the available crops", async () => {
   });
 });
 
-test("recommendations are saved in SQLite and can be retrieved", async () => {
+test("recommendations are saved and can be retrieved", async () => {
   const response = await fetch(`${baseUrl}/api/recommend`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -62,7 +69,7 @@ test("recommendations are saved in SQLite and can be retrieved", async () => {
 
   assert.equal(response.status, 201);
   const savedRecommendation = await response.json();
-  assert.ok(Number.isInteger(savedRecommendation.id));
+  assert.match(savedRecommendation.id, /^test-/);
   assert.ok(savedRecommendation.createdAt);
 
   const historyResponse = await fetch(`${baseUrl}/api/recommendations`);
