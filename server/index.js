@@ -1,7 +1,7 @@
 import express from "express";
 import { existsSync } from "node:fs";
 import process from "node:process";
-import { dirname, resolve } from "node:path";
+import { dirname, extname, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { closeDatabase, connectDatabase, recommendationStore } from "./database.js";
 
@@ -229,7 +229,8 @@ app.use("/api", (_req, res) => {
 
 if (existsSync(clientDistPath)) {
   app.use(express.static(clientDistPath));
-  app.get(/.*/, (_req, res, next) => {
+  app.get(/.*/, (req, res, next) => {
+    if (extname(req.path)) return next();
     res.sendFile(resolve(clientDistPath, "index.html"), (error) => {
       if (error) next(error);
     });
