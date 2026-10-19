@@ -59,6 +59,11 @@ a {
     sans-serif;
 }
 
+.app.oromo,
+.app.somali {
+  font-family: "Noto Sans", Lato, system-ui, sans-serif;
+}
+
 /* =========================================================
    NAVBAR
    ========================================================= */
@@ -1213,14 +1218,26 @@ footer {
    ========================================================= */
 
 .app.amharic .hero-content h1,
+.app.oromo .hero-content h1,
+.app.somali .hero-content h1,
 .app.amharic .section-heading h2,
-.app.amharic .final-section h2 {
+.app.oromo .section-heading h2,
+.app.somali .section-heading h2,
+.app.amharic .final-section h2,
+.app.oromo .final-section h2,
+.app.somali .final-section h2 {
   letter-spacing: 0;
 }
 
 .app.amharic .hero-description,
 .app.amharic .faq p,
-.app.amharic .step p {
+.app.amharic .step p,
+.app.oromo .hero-description,
+.app.oromo .faq p,
+.app.oromo .step p,
+.app.somali .hero-description,
+.app.somali .faq p,
+.app.somali .step p {
   line-height: 1.9;
 }
 
@@ -1453,12 +1470,18 @@ footer {
 
 @media (max-width: 430px) {
   .logo span {
-    font-size: 16px;
+    font-size: 14px;
   }
 
   .language-button {
     min-width: 42px;
     padding: 0 8px;
+  }
+
+  .navbar .lang-toggle button {
+    min-width: 30px;
+    padding: 0 4px;
+    font-size: 12px;
   }
 
   .start-button {
@@ -2196,8 +2219,8 @@ footer {
 
 .lang-toggle button {
   height: 42px;
-  min-width: 52px;
-  padding: 0 14px;
+  min-width: 42px;
+  padding: 0 9px;
 
   border: none;
   background: transparent;

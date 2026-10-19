@@ -9,7 +9,7 @@ export default defineConfig(({ mode }) => {
     env.VITE_API_PROXY_TARGET || `http://127.0.0.1:${env.PORT || 3002}`
 
   return {
-    base: '/ethio-crop-advisor./',
+    base: '/',
 
     plugins: [react()],
 

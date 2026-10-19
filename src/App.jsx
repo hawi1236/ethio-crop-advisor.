@@ -53,6 +53,29 @@ function getApiErrorMessage(response, data, fallback, outdatedServerMessage) {
   return data?.error || fallback;
 }
 
+async function readApiResponse(response) {
+  const body = await response.text();
+  if (!body.trim()) {
+    if (!response.ok) {
+      throw new Error(
+        `The API server returned HTTP ${response.status} without a response. Check that the backend is running and connected to MongoDB.`,
+      );
+    }
+    throw new Error("The API server returned an empty response.");
+  }
+
+  try {
+    return JSON.parse(body);
+  } catch {
+    if (!response.ok) {
+      throw new Error(
+        `The API server returned HTTP ${response.status} instead of JSON. Check the backend terminal for an error.`,
+      );
+    }
+    throw new Error("The API server returned an invalid response. Check the backend terminal for an error.");
+  }
+}
+
 function App() {
   const [language, setLanguage] = useState("en");
   const [soilType, setSoilType] = useState("Nitisol");
@@ -82,8 +105,30 @@ function App() {
   const [conditionsRefresh, setConditionsRefresh] = useState(0);
 
   const isAmharic = language === "am";
+  const languageNames = {
+    en: "English",
+    am: "አማርኛ",
+    om: "Afaan Oromoo",
+    so: "Soomaali",
+  };
+  const languageLocales = {
+    en: "en-ET",
+    am: "am-ET",
+    om: "om-ET",
+    so: "so-ET",
+  };
+  useEffect(() => {
+    document.documentElement.lang = language;
+  }, [language]);
+
   const text = {
     en: {
+      brand: "EthioCrop Advisor",
+      menu: "Menu",
+      close: "Close",
+      validDays: "valid days",
+      meanAirTemperature: "Mean air temperature at 2 m",
+      meanRelativeHumidity: "Mean relative humidity at 2 m",
       planner: "Farm planner",
       how: "How it works",
       about: "About",
@@ -106,7 +151,7 @@ function App() {
       locationSearchLoading: "Searching Ethiopian locations...",
       locationNoResults: "No matching Ethiopian locations found.",
       locationSearchError: "Could not search locations. Check your connection and try again.",
-      outdatedApiServer: "The website reached an older or misconfigured API. Stop both server terminals, restart them from the project folder with `npm.cmd run dev:server` and `npm.cmd run dev`, then reload the Vite URL.",
+      outdatedApiServer: "Could not reach the API. From the project folder run `npm.cmd run dev`. The API also needs a working MongoDB connection configured in `.env`.",
       mapSelect: "Choose on map",
       hideMap: "Hide map",
       mapHint: "Click the map to place your farm pin. Zoom in for a more precise location.",
@@ -242,6 +287,12 @@ meher2028: "Meher 2028",
     },
 
     am: {
+      brand: "ኢትዮክሮፕ አማካሪ",
+      menu: "ምናሌ",
+      close: "ዝጋ",
+      validDays: "የመረጃ ቀናት",
+      meanAirTemperature: "በ2 ሜትር አማካይ ሙቀት",
+      meanRelativeHumidity: "በ2 ሜትር አማካይ እርጥበት",
       planner: "የእርሻ ዕቅድ",
       how: "እንዴት ይሰራል",
       about: "ስለ እኛ",
@@ -263,7 +314,7 @@ meher2028: "Meher 2028",
       locationSearchLoading: "የኢትዮጵያ ቦታዎችን በመፈለግ ላይ...",
       locationNoResults: "ተመሳሳይ የኢትዮጵያ ቦታ አልተገኘም።",
       locationSearchError: "ቦታውን መፈለግ አልተቻለም። ኢንተርኔትዎን ያረጋግጡ።",
-      outdatedApiServer: "ድረ-ገጹ የቆየ ወይም በትክክል ያልተዋቀረ API አግኝቷል። ሁለቱንም አገልጋዮች ያቁሙ፣ በፕሮጀክቱ አቃፊ ውስጥ `npm.cmd run dev:server` እና `npm.cmd run dev` እንደገና ያስኪዱ፣ ከዚያ የVite አድራሻውን ይክፈቱ።",
+      outdatedApiServer: "API ማግኘት አልተቻለም። ከፕሮጀክቱ አቃፊ `npm.cmd run dev` ያስኪዱ። API በ `.env` ውስጥ የተዋቀረ የሚሰራ MongoDB ግንኙነት ያስፈልገዋል።",
       mapSelect: "በካርታ ላይ ይምረጡ",
       hideMap: "ካርታውን ደብቅ",
       mapHint: "የእርሻዎን ቦታ ለመምረጥ ካርታውን ይጫኑ። ቦታውን ለማጉላት ያሳድጉ።",
@@ -403,6 +454,240 @@ meher2028: "መኸር 2028",
       footer1: "ኢትዮክሮፕ አማካሪ · ቡድን ቀዳማዊያን",
       footer2:
         "NASA Space Apps Challenge · የሰብል ዕቅድ ማሳያ"
+    },
+
+    om: {
+      brand: "Gorsa Midhaanii",
+      menu: "Baafata",
+      close: "Cufi",
+      validDays: "guyyoota odeeffannoon jiru",
+      meanAirTemperature: "Ho'a qilleensaa giddugaleessaa meetira 2 irratti",
+      meanRelativeHumidity: "Jiidhina qilleensaa giddugaleessaa meetira 2 irratti",
+      planner: "Karoora qonnaa",
+      how: "Akkaataa itti hojjetu",
+      about: "Waa'ee",
+      help: "Gargaarsa",
+      start: "Karoora jalqabi",
+      eyebrow: "GORSA MIDHAAN ITOOPHIYAA",
+      title: "Erga midhaan kana haamtanii booda maal facaastuu?",
+      description: "Gorsaan Midhaan Itoophiyaa odeeffannoo qonna keessanii fayyadamuun fakkeenya marsaa midhaanii fi sababoota isaa afaan salphaan isinitti agarsiisa.",
+      farmTitle: "Waa'ee qonna keessanii nutti himaa",
+      farmSubtitle: "Daqiiqaa tokko qofa fudhata.",
+      location: "Bakka qonnaa",
+      locationPlaceholder: "Magaalaa, aanaa ykn naannoo",
+      locationSelect: "Bakka Itoophiyaa sirrii ta'e filadhaa",
+      locationHint: "Itoophiyaa keessatti magaalaa ykn aanaa barbaadaa, isa sirrii filadhaa.",
+      geocodingCredit: "Bakka barbaaduu: Open-Meteo",
+      locationSearchLoading: "Bakkoowwan Itoophiyaa barbaadaa jira...",
+      locationNoResults: "Bakki Itoophiyaa kanaan wal fakkaatu hin argamne.",
+      locationSearchError: "Bakka barbaaduun hin danda'amne. Intarneetii keessan ilaalaa, irra deebi'aatii yaalaa.",
+      outdatedApiServer: "API argachuun hin danda'amne. Galmee pirojektii keessatti `npm.cmd run dev` ajajaa. API'n MongoDB `.env` keessatti qindaa'e kan hojjetu barbaada.",
+      mapSelect: "Kaartaa irratti filadhaa",
+      hideMap: "Kaartaa dhoksaa",
+      mapHint: "Mallattoo qonnaa keessanii kaa'uuf kaartaa tuqaa. Bakka sirriitti argachuuf guddisaa.",
+      mapApproximation: "Kaartaan naannoo Itoophiyaa tilmaamaan agarsiisa. Mallattoon keessan biyya keessaa akka jiru mirkaneessaa.",
+      mapInvalid: "Bakkichi kaartaa qorannoo Itoophiyaa kanaa alatti argama.",
+      mapPoint: "Bakka kaartaa",
+      selectedLocation: "Bakka filatame",
+      retry: "Irra deebi'aa yaalaa",
+      soil: "Gosa biyyee",
+      previous: "Midhaan duraanii",
+      current: "Midhaan amma jiru",
+      size: "Bal'ina qonnaa",
+      irrigation: "Jallisii qabduu?",
+      irrigationYes: "Eeyyee",
+      irrigationNo: "Lakki",
+      irrigationUnknown: "Hin beeku",
+      priorities: "Wanti isin caalaa barbaaddan maal?",
+      soilHealth: "Fayyaa biyyee",
+      water: "Bishaan qusachuu",
+      income: "Galii",
+      food: "Nyaata",
+      rotationButton: "Marsaa midhaanii koo barbaadi →",
+      free: "Bilisaa",
+      noAccount: "Herrega hin barbaachisu",
+      nasa: "Haala qilleensaa NASA POWER",
+      now: "Amma",
+      next: "Itti aanu",
+      afterThat: "Sana booda",
+      teff: "Xaafii",
+      fabaBean: "Baaqelaa",
+      wheat: "Qamadii",
+      maize: "Boqqolloo",
+      chickpea: "Shumburaa",
+      meher2026: "Bona 2026",
+      meher2027: "Bona 2027",
+      meher2028: "Bona 2028",
+      why: "Maaliif:",
+      farmNow: "Haala qonna keessanii amma",
+      farmNowSubtitle: "Tilmaamni haala qilleensaa NASA POWER yeroo dhiyoo bakka filatameef jiru. Isaan kun tilmaama naannoo ti; safartuu qonna keessanii miti.",
+      rainfall: "Rooba guyyoota 30 waliigala",
+      humidity: "Jiidhina qilleensaa",
+      dataSource: "Madda",
+      dataPeriod: "Yeroo odeeffannoo",
+      retrievedAt: "Yeroo fudhatame",
+      dataResolution: "Qulqullina iddoo",
+      noLocationSelected: "Odeeffannoo naannoo argachuuf bakka Itoophiyaa barbaadaa, bu'aa sirrii filadhaa.",
+      conditionsLoading: "Odeeffannoo naannoo yeroo dhiyoo fe'aa jira...",
+      weatherDisclaimer: "Kun tilmaama kaartaa irratti hundaa'e; safartuu qonna keessanii miti. NASA POWER asitti jiidhina biyyee ykn fayyaa midhaanii hin kennu.",
+      weatherLoadError: "Odeeffannoo naannoo fe'uun hin danda'amne. Intarneetii keessan ilaalaa, irra deebi'aatii yaalaa.",
+      temperature: "Ho'a",
+      suitable: "Mijataa",
+      scoreMeaning: "Qabxiin kun seera fakkeenyaa wajjin walsimuu agarsiisa; oomisha ykn bu'aa maallaqaa hin tilmaamu. Haalli qilleensaa odeeffannoo dabalataa qofa; filannoowwan kana amma hin jijjiiru. Seerota ogeessi naannoo gamaaggamuu qaba.",
+      options: "Filannoowwan marsaa midhaanii keessanii",
+      optionsSubtitle: "Tokkoon tokkoon isaanii sababaa qaba.",
+      bestFit: "Kan caalaa mijatu",
+      balanced: "Walmadaalaa",
+      waterSaving: "Bishaan qusatu",
+      reason1: "Midhaan baaqelaa tokko midhaan akka boqqolloo fi qamadii gidduutti dabaluun naayitiroojiinii biyyee haaromsa.",
+      reason2: "Midhaan akka boqqolloo fi baaqelaa walitti makuun galii fi fayyaa biyyee madaala.",
+      reason3: "Shumburaan bishaan xiqqaa barbaada; roobni hin mirkanoofne yoo ta'e ni fayyada.",
+      works: "Akkaataa itti hojjetu",
+      worksSubtitle: "Tarkaanfiiwwan salphaa afur.",
+      step1: "Waa'ee qonna keessanii ibsaa",
+      step1Text: "Naannoo, biyyee, midhaanii fi bal'ina.",
+      step2: "Odeeffannoo haala qilleensaa arganna",
+      step2Text: "NASA POWER bakka Itoophiyaa filatameef tilmaama haala qilleensaa kaartaa irraa dhiheenya kanaa kenna.",
+      step3: "Marsaa midhaanii fakkeenyaa ni yaadna",
+      step3Text: "Tartiibni midhaanii fakkeenyaa dursa filattaniin filatama.",
+      step4: "Filannoowwan wal bira qabaa",
+      step4Text: "Qabxiin tokkoon tokkoon isaa sababaa afaan salphaan ibsame qaba.",
+      questions: "Gargaarsaa fi gaaffilee yeroo baay'ee gaafataman",
+      questionsSubtitle: "Namoota yeroo jalqabaatiif fayyadamaniif deebii gabaabaa.",
+      dataQuestion: "Odeeffannoon kun yeroo ammaa ti?",
+      dataAnswer: "Tilmaamni haala qilleensaa yeroo dhiyoo NASA POWER irraa argama. Isaan kun tilmaama giraadii tilmaamaan 0.5° ta'eeti; safartuu qonna keessanii miti. Jiidhina biyyee fi fayyaa midhaanii satalaayitii irraa argamu ammaaf hin walqabsiifne.",
+      rotationQuestion: "Qabxiin marsaa midhaanii akkamitti shallagama?",
+      rotationAnswer: "API'n amma marsaa midhaanii fi qabxii fakkeenyaa deebisa. Filannoo midhaanii ogeessa qonnaa naannoo waliin mirkaneessaa.",
+      accountQuestion: "Herrega banachuun na barbaachisaa?",
+      accountAnswer: "Lakki. Piroototaayipiin kun herrega malee akka hojjetu qophaa'e.",
+      expertQuestion: "Kun ogeessa qonnaa bakka bu'aa?",
+      expertAnswer: "Lakki. Qonnaan bultootaa fi ogeessota qonnaa deeggaruuf qophaa'e.",
+      contactTitle: "Ammas gargaarsi isin barbaachisaa?",
+      contactText: "Gorsa qonna keessan irratti xiyyeeffate argachuuf ogeessa misooma qonnaa naannoo keessanii dubbisaa. Mata dureewwan gargaarsaa armaan gadii illee ilaaluu dandeessu.",
+      contact: "Mata dureewwan gargaarsaa ilaalaa",
+      ready: "Waggaa qonnaa itti aanu karoorfachuuf qophooftanii?",
+      recommendationLoading: "Yaada gorsaa fe'aa jira...",
+      requestFailed: "Gaaffiin hin milkoofne. Sarvariin API hojjechaa akka jiru mirkaneessaa, irra deebi'aatii yaalaa.",
+      noRecommendations: "Odeeffannoo qonna keessanii filadhaa, achiis marsaa midhaanii keessanii barbaadaa.",
+      footer1: "Gorsaa Midhaan Itoophiyaa · Garee Qedamawiyan",
+      footer2: "NASA Space Apps Challenge · Fakkeenya karoora midhaanii"
+    },
+
+    so: {
+      brand: "La-taliyaha Dalagga",
+      menu: "Liiska",
+      close: "Xir",
+      validDays: "maalmo xog la hayo",
+      meanAirTemperature: "Celceliska heerkulka hawada ee 2 m",
+      meanRelativeHumidity: "Celceliska huurka hawada ee 2 m",
+      planner: "Qorshaha beeraha",
+      how: "Sida uu u shaqeeyo",
+      about: "Nagu saabsan",
+      help: "Caawimaad",
+      start: "Bilow qorshaynta",
+      eyebrow: "LA-TALIYAHA DALAGGA ITOOBIYA",
+      title: "Maxaad beeran lahayd markaad dalaggan goosato ka dib?",
+      description: "La-taliyaha Dalagga Itoobiya wuxuu adeegsadaa xogta beertaada si uu kuu tuso tusaalooyin wareegga dalagga iyo sababahooda oo si fudud loo sharxay.",
+      farmTitle: "Nooga warran beertaada",
+      farmSubtitle: "Waxay qaadanaysaa qiyaastii hal daqiiqo.",
+      location: "Goobta beerta",
+      locationPlaceholder: "Magaalo, degmo ama gobol",
+      locationSelect: "Dooro goobta Itoobiya ee saxda ah",
+      locationHint: "Ka raadi Itoobiya oo dooro magaalada ama degmada saxda ah.",
+      geocodingCredit: "Raadinta goobta: Open-Meteo",
+      locationSearchLoading: "Waxaa la raadinayaa goobaha Itoobiya...",
+      locationNoResults: "Lama helin goob Itoobiya ah oo u dhiganta.",
+      locationSearchError: "Goobaha lama raadin karin. Hubi xidhiidhka internetka oo mar kale isku day.",
+      outdatedApiServer: "Lama gaadhi karo API-ga. Gal galka mashruuca oo socodsii `npm.cmd run dev`. API-gu wuxuu kaloo u baahan yahay xidhiidh MongoDB oo shaqaynaya oo lagu dejiyey `.env`.",
+      mapSelect: "Ka dooro khariidadda",
+      hideMap: "Qari khariidadda",
+      mapHint: "Guji khariidadda si aad calaamadda beerta u dhigto. Soo dhoweey si aad meel sax ah u doorato.",
+      mapApproximation: "Khariidaddu waxay muujinaysaa qiyaas guud oo Itoobiya ah. Hubi in calaamaddu dalka ku jirto.",
+      mapInvalid: "Meeshaasi waxay ka baxsan tahay aagga khariidadda tijaabada Itoobiya.",
+      mapPoint: "Meesha khariidadda",
+      selectedLocation: "Goobta la doortay",
+      retry: "Mar kale isku day",
+      soil: "Nooca ciidda",
+      previous: "Dalaggii hore",
+      current: "Dalagga hadda",
+      size: "Baaxadda beerta",
+      irrigation: "Waraab ma haysaa?",
+      irrigationYes: "Haa",
+      irrigationNo: "Maya",
+      irrigationUnknown: "Ma hubo",
+      priorities: "Maxaa kuugu muhiimsan?",
+      soilHealth: "Caafimaadka ciidda",
+      water: "Kaydinta biyaha",
+      income: "Dakhli",
+      food: "Cunto",
+      rotationButton: "Raadi wareegga dalaggayga →",
+      free: "Bilaash",
+      noAccount: "Akoon looma baahna",
+      nasa: "Xogta cimilada NASA POWER",
+      now: "Hadda",
+      next: "Xiga",
+      afterThat: "Intaa ka dib",
+      teff: "Teff",
+      fabaBean: "Digir faba",
+      wheat: "Qamadi",
+      maize: "Galley",
+      chickpea: "Digir (chickpea)",
+      meher2026: "Xilliga Meher 2026",
+      meher2027: "Xilliga Meher 2027",
+      meher2028: "Xilliga Meher 2028",
+      why: "Sababta:",
+      farmNow: "Xaaladda beertaada hadda",
+      farmNowSubtitle: "Qiyaasaha cimilada ee NASA POWER ee dhowaan laga helay goobta la doortay. Kuwani waa qiyaaso heer gobol ah, mana aha cabbirro laga qaaday beertaada.",
+      rainfall: "Wadarta roobka 30 maalmood",
+      humidity: "Huurka hawada",
+      dataSource: "Isha xogta",
+      dataPeriod: "Muddada xogta",
+      retrievedAt: "La helay",
+      dataResolution: "Xallinta goobta",
+      noLocationSelected: "Raadi meel Itoobiya ku taal oo dooro natiijo ku habboon si loo soo bandhigo xogta deegaanka.",
+      conditionsLoading: "Waxaa la soo rarayaa xogta deegaanka ee dhowaan...",
+      weatherDisclaimer: "Kuwani waa qiyaaso khariidadeed, mana aha cabbirro beertaada laga qaaday. NASA POWER halkan kama bixiso qoyaanka ciidda ama caafimaadka dalagga.",
+      weatherLoadError: "Lama soo rari karin xogta deegaanka. Hubi internetka oo mar kale isku day.",
+      temperature: "Heerkulka",
+      suitable: "Ku habboon",
+      scoreMeaning: "Dhibcahani waa isku-aaddinta xeerar tijaabo ah, mana saadaaliyaan wax-soo-saarka ama faa'iidada. Cimilada waxaa loo muujiyey macluumaad guud oo keliya, welina ma saamayso xulashooyinkan. Xeerarka waa inuu dib u eego khabiir deegaanka ah.",
+      options: "Xulashooyinka wareegga dalaggaaga",
+      optionsSubtitle: "Mid kasta sabab ayuu leeyahay.",
+      bestFit: "Kan ugu habboon",
+      balanced: "Dheellitiran",
+      waterSaving: "Biyo kaydiya",
+      reason1: "Ku daridda dalag digir ah oo u dhexeeya dalagyada badarka waxay dib u soo celisaa nafaqada nitrogen-ka ee ciidda.",
+      reason2: "Isku darka badarka iyo digirta wuxuu dheellitiraa dakhliga iyo caafimaadka ciidda.",
+      reason3: "Digirta chickpea waxay u baahan tahay biyo yar, waana waxtar marka roobka aan la hubin.",
+      works: "Sida uu u shaqeeyo",
+      worksSubtitle: "Afar tallaabo oo fudud.",
+      step1: "Sharax beertaada",
+      step1Text: "Gobolka, ciidda, dalagyada iyo baaxadda.",
+      step2: "Waxaan soo qaadannaa xogta cimilada",
+      step2Text: "NASA POWER waxay bixisaa qiyaaso cimilo oo dhowaan ah, kuna salaysan shabakad cabbir, goobta Itoobiya ee la doortay.",
+      step3: "Waxaan soo jeedinnaa wareegyo dalag oo tusaale ah",
+      step3Text: "Taxanayaasha dalagga tusaalaha ah waxaa lagu doortaa mudnaanta aad dooratay.",
+      step4: "Is barbar dhig xulashooyinka",
+      step4Text: "Dhibcaha waxaa la socda sabab si fudud loo sharxay.",
+      questions: "Caawimaad iyo su'aalaha badanaa la isweydiiyo",
+      questionsSubtitle: "Jawaabo kooban oo loogu talagalay isticmaalayaasha cusub.",
+      dataQuestion: "Xogtu ma tahay mid toos ah?",
+      dataAnswer: "Qiyaasaha cimilada ee dhowaan waxaa laga soo qaataa NASA POWER. Waxay matalaan shabakad cabbir oo ku dhow 0.5 darajo, mana aha cabbirro beertaada laga qaaday. Xogta dayax-gacmeedka ee qoyaanka ciidda iyo caafimaadka dalagga weli lama xidhin.",
+      rotationQuestion: "Sidee loo xisaabiyaa dhibcaha wareegga dalagga?",
+      rotationAnswer: "API-ga hadda jira wuxuu soo celiyaa wareegyo dalag iyo dhibco tusaale ah. Kala doorashada dalagga kala tasho khabiir beeraha oo deegaanka ah.",
+      accountQuestion: "Akoon ma u baahanahay?",
+      accountAnswer: "Maya. Tusaalahan waxaa loo sameeyay inuu shaqeeyo iyada oo aan akoon loo baahnayn.",
+      expertQuestion: "Tani ma beddelaysaa khabiirka beeraha?",
+      expertAnswer: "Maya. Waxaa loo sameeyay inay taageerto beeralayda iyo xirfadlayaasha beeraha.",
+      contactTitle: "Weli ma u baahan tahay caawimaad?",
+      contactText: "Talo ku saabsan beertaada gaarka ah, la hadal wakiilka horumarinta beeraha ee deegaankaaga. Waxaad sidoo kale ka eegi kartaa mawduucyada caawimaadda ee hoose.",
+      contact: "Eeg mawduucyada caawimaadda",
+      ready: "Diyaar ma u tahay inaad qorshayso xilliga beerashada ee xiga?",
+      recommendationLoading: "Waxaa la soo rarayaa talooyinka...",
+      requestFailed: "Codsigu wuu fashilmay. Hubi in server-ka API-gu shaqaynayo oo mar kale isku day.",
+      noRecommendations: "Dooro xogta beertaada, dabadeed raadi wareegga dalaggaaga.",
+      footer1: "La-taliyaha Dalagga Itoobiya · Kooxda Qedamawiyan",
+      footer2: "NASA Space Apps Challenge · Tusaalaha qorshaynta dalagga"
     }
   };
 
@@ -436,7 +721,7 @@ meher2028: "መኸር 2028",
           location: selectedLocationName,
         }),
       });
-      const data = await response.json();
+      const data = await readApiResponse(response);
       if (!response.ok) {
         throw new Error(getApiErrorMessage(response, data, "Could not load recommendations.", t.outdatedApiServer));
       }
@@ -469,7 +754,7 @@ meher2028: "መኸር 2028",
         const response = await fetch(`/api/locations?query=${encodeURIComponent(query)}`, {
           signal: controller.signal,
         });
-        const data = await response.json();
+        const data = await readApiResponse(response);
         if (!response.ok) {
           throw new Error(getApiErrorMessage(response, data, t.locationSearchError, t.outdatedApiServer));
         }
@@ -503,7 +788,7 @@ meher2028: "መኸር 2028",
           `/api/farm-conditions?location=${encodeURIComponent(locationDisplayName(selectedLocation, t.mapPoint))}&latitude=${selectedLocation.latitude}&longitude=${selectedLocation.longitude}`,
           { signal: controller.signal },
         );
-        const data = await response.json();
+        const data = await readApiResponse(response);
         if (!response.ok) {
           throw new Error(getApiErrorMessage(response, data, t.weatherLoadError, t.outdatedApiServer));
         }
@@ -558,6 +843,46 @@ meher2028: "መኸር 2028",
     "5 hectares": "5 ሄክታር",
     "10 hectares": "10 ሄክታር",
     "20+ hectares": "20+ ሄክታር"
+  },
+  om: {
+    "Bishoftu, Oromia": "Bishoftu, Oromiyaa",
+    Nitisol: "Nitiisoolii (biyyee diimaa)",
+    Vertisol: "Vartiisoolii (biyyee suphee gurraacha)",
+    Cambisol: "Kambiisoolii",
+    Luvisol: "Luviisoolii",
+    Maize: "Boqqolloo",
+    Teff: "Xaafii",
+    Wheat: "Qamadii",
+    Barley: "Garbu",
+    Sorghum: "Bisingaa",
+    Chickpea: "Shumburaa",
+    "Faba bean": "Baaqelaa",
+    "0.5 hectare": "0.5 hektaara",
+    "1 hectare": "1 hektaara",
+    "2 hectares": "2 hektaara",
+    "5 hectares": "5 hektaara",
+    "10 hectares": "10 hektaara",
+    "20+ hectares": "20+ hektaara"
+  },
+  so: {
+    "Bishoftu, Oromia": "Bishoftu, Oromiya",
+    Nitisol: "Nitisol (ciid cas)",
+    Vertisol: "Vertisol (dhoobo madow)",
+    Cambisol: "Cambisol",
+    Luvisol: "Luvisol",
+    Maize: "Galley",
+    Teff: "Teff",
+    Wheat: "Qamadi",
+    Barley: "Shaciir",
+    Sorghum: "Masago",
+    Chickpea: "Digirta chickpea",
+    "Faba bean": "Digirta faba",
+    "0.5 hectare": "0.5 hektar",
+    "1 hectare": "1 hektar",
+    "2 hectares": "2 hektar",
+    "5 hectares": "5 hektar",
+    "10 hectares": "10 hektar",
+    "20+ hectares": "20+ hektar"
   }
 };
 
@@ -590,14 +915,14 @@ const cropClass = (crop) =>
 
 const rotationOptions = displayRecommendations;
   return (
-    <div className={isAmharic ? "app amharic" : "app"}>
+    <div className={`app ${isAmharic ? "amharic" : language === "om" ? "oromo" : language === "so" ? "somali" : ""}`}>
 
       {/* NAVIGATION */}
       <header className="navbar">
 <button
   type="button"
   className="menu-button"
-  aria-label="Menu"
+  aria-label={t.menu}
   onClick={() => setMenuOpen(true)}
 >
   <span></span>
@@ -606,7 +931,7 @@ const rotationOptions = displayRecommendations;
 </button>
         <div className="logo">
           <div className="logo-icon">🌱</div>
-         <span>{isAmharic ? "ኢትዮክሮፕ አማካሪ" : "EthioCrop Advisor"}</span>
+         <span>{t.brand}</span>
         </div>
 
         <nav className="nav-links">
@@ -620,21 +945,24 @@ const rotationOptions = displayRecommendations;
         <div className="nav-actions">
 
   <div className="lang-toggle">
-    <button
-      type="button"
-      className={!isAmharic ? "active" : ""}
-      onClick={() => setLanguage("en")}
-    >
-      EN
-    </button>
-
-    <button
-      type="button"
-      className={isAmharic ? "active" : ""}
-      onClick={() => setLanguage("am")}
-    >
-      አማ
-    </button>
+    {[
+      { code: "en", label: "EN" },
+      { code: "am", label: "አማ" },
+      { code: "om", label: "OM" },
+      { code: "so", label: "SO" },
+    ].map(({ code, label }) => (
+      <button
+        key={code}
+        type="button"
+        className={language === code ? "active" : ""}
+        aria-label={languageNames[code]}
+        aria-pressed={language === code}
+        title={languageNames[code]}
+        onClick={() => setLanguage(code)}
+      >
+        {label}
+      </button>
+    ))}
   </div>
 
   <button
@@ -660,11 +988,11 @@ const rotationOptions = displayRecommendations;
 <aside className={`mobile-menu ${menuOpen ? "open" : ""}`}>
 
   <div className="mobile-menu-top">
-    <strong>{isAmharic ? "ኢትዮክሮፕ አማካሪ" : "EthioCrop Advisor"}</strong>
+    <strong>{t.brand}</strong>
     <button
       type="button"
       className="menu-close"
-      aria-label="Close"
+      aria-label={t.close}
       onClick={() => setMenuOpen(false)}
     >
       ✕
@@ -1085,19 +1413,19 @@ const rotationOptions = displayRecommendations;
   <div className="data-card">
     <small>{t.rainfall}</small>
     <strong>{farmConditions.rainfall.value} {farmConditions.rainfall.unit}</strong>
-    <span>{farmConditions.rainfall.days} {isAmharic ? "የመረጃ ቀናት" : "valid days"}</span>
+    <span>{farmConditions.rainfall.days} {t.validDays}</span>
   </div>
 
   <div className="data-card">
     <small>{t.temperature}</small>
     <strong>{farmConditions.temperature.value} {farmConditions.temperature.unit}</strong>
-    <span>{isAmharic ? "በ2 ሜትር አማካይ ሙቀት" : "Mean air temperature at 2 m"}</span>
+    <span>{t.meanAirTemperature}</span>
   </div>
 
   <div className="data-card">
     <small>{t.humidity}</small>
     <strong>{farmConditions.humidity.value} {farmConditions.humidity.unit}</strong>
-    <span>{isAmharic ? "በ2 ሜትር አማካይ" : "Mean relative humidity at 2 m"}</span>
+    <span>{t.meanRelativeHumidity}</span>
   </div>
 
 </div>
@@ -1118,13 +1446,13 @@ const rotationOptions = displayRecommendations;
               <p>
                       <strong>{t.retrievedAt}:</strong>{" "}
                       <time dateTime={farmConditions.retrievedAt}>
-                        {new Date(farmConditions.retrievedAt).toLocaleString(isAmharic ? "am-ET" : "en-ET")}
+                        {new Date(farmConditions.retrievedAt).toLocaleString(languageLocales[language])}
                       </time>
                     </p>
                     <p>
                       <strong>{t.dataResolution}:</strong> {farmConditions.spatialResolution}
                       {" · "}
-                {farmConditions.validDays} / 30 {isAmharic ? "የተጠቃሚ ቀናት" : "valid days"}
+                {farmConditions.validDays} / 30 {t.validDays}
               </p>
               <p className="sample-text">{t.weatherDisclaimer}</p>
             </div>
