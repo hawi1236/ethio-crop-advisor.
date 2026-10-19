@@ -14,7 +14,7 @@ export function getMongoUri(uri = process.env.MONGODB_URI) {
 
   if (/YOUR_CLUSTER|<[^>]+>/i.test(uri)) {
     throw new Error(
-      "MONGODB_URI still contains a placeholder. Copy the connection string from MongoDB Atlas and replace the placeholders."
+      "MONGODB_URI still contains an example placeholder. Copy the connection string from MongoDB Atlas and replace the placeholders."
     );
   }
 
